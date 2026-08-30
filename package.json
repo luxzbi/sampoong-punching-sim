@@ -1,0 +1,32 @@
+{
+  "name": "sampoong-punching-sim",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "교육용 플랫슬래브 펀칭전단 / 연쇄붕괴 구조 시뮬레이터 (한국사 탐구용)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "sanity": "esbuild scripts/sanity-check.ts --bundle --platform=node --format=cjs --outfile=node_modules/.cache/sanity.cjs --log-level=warning && node node_modules/.cache/sanity.cjs"
+  },
+  "dependencies": {
+    "@react-three/drei": "^9.114.3",
+    "@react-three/fiber": "^8.17.10",
+    "html-to-image": "^1.11.11",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.13.3",
+    "three": "^0.169.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.169.0",
+    "@vitejs/plugin-react": "^4.3.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "esbuild": "^0.21.5"
+  }
+}
