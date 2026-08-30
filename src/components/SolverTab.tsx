@@ -54,9 +54,16 @@ export default function SolverTab({ current }: Props) {
     (r) => (mode === 'service' ? r.dcrService : r.dcrDesign) < 1.0
   );
 
+  // ---- 결론 정리에 쓰는 파생값 (모두 위 실험 결과에서 계산) ----
+  const over1 = cells.filter((c) => (mode === 'service' ? c.dcrService : c.dcrDesign) >= 1.0).length;
+  const best = Math.min(...cells.map((c) => (mode === 'service' ? c.dcrService : c.dcrDesign)));
+  const bestDesign = Math.min(...cells.map((c) => c.dcrDesign));
+  const achievable = thresholds.filter((t) => t.achievable);
+  const unachievable = thresholds.filter((t) => !t.achievable);
+
   return (
     <div className="page">
-      <div className="page-inner" ref={boxRef}>
+      <div className="page-inner wide" ref={boxRef}>
         <h2>붕괴 회피 실험 — 무엇이 달랐다면 D/C 가 1.0 아래였을까</h2>
         <p>
           이 탭은 계산만 다룹니다. 3D 탭의 붕괴 애니메이션은 개념 시각화이고, 여기 숫자는 모두
@@ -122,26 +129,33 @@ export default function SolverTab({ current }: Props) {
         </p>
 
         <div className="matrix">
-          <div className="mx-cell mx-head" />
-          <div className="mx-cell mx-head">하중 : 실제 사용<br />
-            <span>식당가 용도 + 국부 추가하중</span>
+          <div className="mx-cell mx-corner">
+            <span className="c1">하중 조건 →</span>
+            <span className="c2">↓ 시공 조건</span>
           </div>
-          <div className="mx-cell mx-head">하중 : 원설계<br />
-            <span>판매장 용도, 추가하중 없음</span>
+          <div className="mx-cell mx-head">
+            <b>하중 : 실제 사용</b>
+            <span>식당가 용도 (고정하중 4.5 kPa) + 국부 추가하중 3.0 kPa</span>
+          </div>
+          <div className="mx-cell mx-head">
+            <b>하중 : 원설계</b>
+            <span>판매장 용도 (고정하중 1.5 kPa), 추가하중 없음</span>
           </div>
 
-          <div className="mx-cell mx-head side">시공 : 실제<br />
-            <span>무량판(드롭패널 없음), D 600 mm, f′c 18.4 MPa, d 360 mm</span>
+          <div className="mx-cell mx-head side">
+            <b>시공 : 실제</b>
+            <span>무량판 · D 600 mm · f′c 18.4 MPa · d 360 mm · 8-HD22</span>
           </div>
           {['aa', 'ab'].map((id) => (
-            <MatrixCell key={id} dcr={dcrOfCell(id)} cell={pick(id)} highlight={id === 'aa'} />
+            <MatrixCell key={id} dcr={dcrOfCell(id)} cell={pick(id)} mode={mode} highlight={id === 'aa'} />
           ))}
 
-          <div className="mx-cell mx-head side">시공 : 구조계산서<br />
-            <span>무량판(드롭패널 없음), D 800 mm, f′c 21 MPa, d 410 mm</span>
+          <div className="mx-cell mx-head side">
+            <b>시공 : 구조계산서</b>
+            <span>무량판 · D 800 mm · f′c 21 MPa · d 410 mm · 16-HD22</span>
           </div>
           {['ba', 'bb'].map((id) => (
-            <MatrixCell key={id} dcr={dcrOfCell(id)} cell={pick(id)} />
+            <MatrixCell key={id} dcr={dcrOfCell(id)} cell={pick(id)} mode={mode} />
           ))}
         </div>
 
@@ -346,6 +360,98 @@ export default function SolverTab({ current }: Props) {
 
         {/* ---------------- 4) 사건과의 대조 ---------------- */}
 
+        {/* ---------------- 4) 실험 결론 ---------------- */}
+
+        <h3>실험 결론</h3>
+        <p style={{ marginTop: 0 }}>
+          위 세 실험에서 계산된 값만으로 정리한 것입니다. 모든 수치는 현재 선택한 기준
+          <b> ({mode === 'service' ? '사용하중' : '계수하중'})</b> 에서 다시 계산되며, 값을 바꾸면 결론
+          문장의 숫자도 함께 바뀝니다.
+        </p>
+
+        <div className="concl">
+          <Conclusion
+            n={1}
+            title="두 원인이 겹쳤을 때만 한계를 넘었다"
+            tone={over1 === 1 ? 'key' : 'plain'}
+          >
+            2×2 네 칸 중 D/C 가 1.0 을 넘는 칸은 <b>{over1}개</b>입니다
+            {over1 === 1 && (
+              <>
+                {' '}
+                — <b>실제 시공 × 실제 사용</b> 조합({dcrOfCell('aa').toFixed(2)}) 하나뿐입니다. 시공만
+                구조계산서대로였다면 {dcrOfCell('ba').toFixed(2)}, 하중만 원설계대로였다면{' '}
+                {dcrOfCell('ab').toFixed(2)} 로 모두 1.0 아래입니다.
+              </>
+            )}
+            . 이 모형 안에서 읽으면, 설계 변경(구조 축소)과 용도 변경(하중 증가) 중{' '}
+            <b>어느 한쪽만으로는 이 접합부가 한계를 넘지 않았고, 두 가지가 겹쳤을 때 넘었습니다.</b>
+          </Conclusion>
+
+          <Conclusion n={2} title="요구를 줄이는 것이 저항을 키우는 것만큼 효과적이었다">
+            구조를 전혀 바꾸지 않고 <b>하중만</b> 원설계 수준으로 되돌리면{' '}
+            {dcrOfCell('aa').toFixed(2)} → {dcrOfCell('ab').toFixed(2)} 로 내려갑니다. 반대로 하중은
+            그대로 두고 <b>구조만</b> 구조계산서대로 되돌리면 {dcrOfCell('ba').toFixed(2)} 입니다. 두
+            방향의 효과가 거의 같습니다. 펀칭전단에서 D/C = Vu / φVn 이므로,{' '}
+            <b>분자(Vu)를 줄이는 것과 분모(φVn)를 키우는 것은 대등한 수단</b>입니다.
+          </Conclusion>
+
+          <Conclusion n={3} title="애초에 여유가 거의 없는 조건이었다">
+            네 칸 중 가장 좋은 조건(둘 다 원래 계획대로)도 {mode === 'service' ? '사용하중' : '계수하중'}{' '}
+            기준 <b>{best.toFixed(2)}</b> 입니다. 계수하중(1.2D+1.6L, φ=0.75) 기준으로 보면 네 칸 모두{' '}
+            <b>1.0 을 넘습니다</b> (가장 낮은 값 {bestDesign.toFixed(2)}). 전단보강 없이 경간{' '}
+            {(base.spanX / 1000).toFixed(1)} m 의 무량판을 쓰는 것 자체가 펀칭전단에 불리하다는 뜻입니다.
+          </Conclusion>
+
+          <Conclusion n={4} title="같은 목표에 도달하는 데 필요한 변화량은 변수마다 크게 다르다">
+            변수 하나만 움직여 D/C ≤ {target} 를 만들 수 있는 것은{' '}
+            <b>{achievable.length}개</b>, 슬라이더 범위 안에서는 불가능한 것이{' '}
+            <b>{unachievable.length}개</b>입니다.
+            {achievable.length > 0 && (
+              <ul>
+                {achievable.map((t) => (
+                  <li key={t.knob.id}>
+                    {t.knob.label} : {num(t.current, t.knob.unit === '(0~1)' ? 2 : 1)} →{' '}
+                    <b>{num(t.required!, t.knob.unit === '(0~1)' ? 2 : 1)}</b> {t.knob.unit}
+                  </li>
+                ))}
+              </ul>
+            )}
+            {unachievable.length > 0 && (
+              <>
+                반면 <b>{unachievable.map((t) => t.knob.label).join(', ')}</b> 는 한계값까지 가도 목표에
+                닿지 못합니다. 특히 콘크리트 강도는 vc ∝ √f′c 라서 강도를 크게 올려도 저항 증가폭이
+                완만하고, 유효깊이는 늘리면 슬래브 자중(=Vu)도 함께 늘기 때문에 순수 이득이 깎입니다.
+              </>
+            )}
+          </Conclusion>
+
+          <Conclusion n={5} title="펀칭전단은 예고 없이 진행되는 취성 파괴다">
+            전단보강이 없으면 저항이 콘크리트의 인장강도에만 의존해, 균열이 생긴 뒤 버텨 주는 여력이
+            거의 없습니다. 이 실험에서 전단보강 추가 한 가지만으로 D/C 가{' '}
+            {path[0] && path[path.length - 1] ? (
+              <b>
+                {(mode === 'service'
+                  ? path[path.length - 2].dcrService - path[path.length - 1].dcrService
+                  : path[path.length - 2].dcrDesign - path[path.length - 1].dcrDesign
+                ).toFixed(2)}
+              </b>
+            ) : (
+              '—'
+            )}{' '}
+            만큼 더 내려간 것도 그 때문입니다. 이것은 <b>숫자로 표현되지 않는 위험</b>이기도 합니다.
+            같은 D/C 라도, 파괴가 서서히 오는 구조와 갑자기 오는 구조는 대피할 시간이 다릅니다.
+          </Conclusion>
+
+          <Conclusion n={6} title="이 결론이 말할 수 없는 것" tone="warn">
+            위 다섯 가지는 모두 <b>접합부 하나</b>에 대한, <b>경간·하중이 가정값</b>인 단순화 모형의
+            결과입니다. 실제 삼풍백화점이 그 조건에서 무너지지 않았을 것이라고 말할 수 없습니다.
+            연쇄붕괴는 계산하지 않았고, 기둥 제거·균열 징후 확인 후의 판단 같은 관리·제도의 문제는
+            애초에 구조 계산으로 표현되지 않습니다. 이 실험의 쓸모는 <b>절대값이 아니라 방향과 크기의
+            비교</b>에 있습니다.
+          </Conclusion>
+        </div>
+
         <h3>실제 사건과 대조해 읽기</h3>
         <div className="grid2">
           <div className="doc">
@@ -410,29 +516,72 @@ export default function SolverTab({ current }: Props) {
   );
 }
 
+function Conclusion({
+  n,
+  title,
+  tone = 'plain',
+  children
+}: {
+  n: number;
+  title: string;
+  tone?: 'plain' | 'key' | 'warn';
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`concl-item ${tone}`}>
+      <div className="concl-head">
+        <span className="concl-n">{n}</span>
+        <span className="concl-t">{title}</span>
+      </div>
+      <div className="concl-b">{children}</div>
+    </div>
+  );
+}
+
+/** D/C 를 0 ~ 1.6 눈금 위에 표시하고 1.0 위치에 기준선을 둔다 */
 function MatrixCell({
   dcr,
   cell,
+  mode,
   highlight
 }: {
   dcr: number;
-  cell: { label: string; vuService: number; vcService: number };
+  cell: {
+    label: string;
+    vuService: number;
+    vcService: number;
+    vuDesign: number;
+    vcDesign: number;
+  };
+  mode: Mode;
   highlight?: boolean;
 }) {
   const info = RISK_INFO[riskOf(dcr)];
+  const vu = mode === 'service' ? cell.vuService : cell.vuDesign;
+  const vc = mode === 'service' ? cell.vcService : cell.vcDesign;
+  const pct = Math.min(100, (dcr / 1.6) * 100);
+
   return (
     <div
       className={`mx-cell mx-val${highlight ? ' hl' : ''}`}
-      style={{ borderColor: info.color, background: `${info.color}12` }}
+      style={{ borderColor: info.color, background: `${info.color}10` }}
     >
-      <div className="mx-dcr" style={{ color: info.color }}>
-        {dcr.toFixed(2)}
+      <div className="mx-top">
+        <span className="mx-dcr" style={{ color: info.color }}>
+          {dcr.toFixed(2)}
+        </span>
+        <span className="mx-risk" style={{ color: info.color }}>
+          {info.label}
+        </span>
       </div>
-      <div className="mx-risk" style={{ color: info.color }}>
-        {info.label}
+
+      <div className="mx-gauge" title="눈금 0 ~ 1.6, 흰 선이 D/C = 1.0">
+        <i style={{ width: `${pct}%`, background: info.color }} />
+        <b style={{ left: '62.5%' }} />
       </div>
+
       <div className="mx-sub">
-        Vu {num(cell.vuService, 0)} kN / φVn {num(cell.vcService, 0)} kN
+        Vu <em>{num(vu, 0)}</em> kN &nbsp;/&nbsp; φVn <em>{num(vc, 0)}</em> kN
       </div>
       <div className="mx-label">{cell.label}</div>
     </div>

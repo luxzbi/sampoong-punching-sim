@@ -56,6 +56,8 @@ export interface FactorialCell {
   dcrService: number;
   vuService: number;
   vcService: number;
+  vuDesign: number;
+  vcDesign: number;
   params: Params;
 }
 
@@ -121,6 +123,8 @@ export function factorial(base?: Params): FactorialCell[] {
       dcrService: service.dcr,
       vuService: service.vu,
       vcService: service.vc,
+      vuDesign: design.vu,
+      vcDesign: design.vc,
       params: p
     };
   });
